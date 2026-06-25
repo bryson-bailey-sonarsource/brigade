@@ -314,61 +314,80 @@ else
 fi
 [ -f "$BRIEF" ] || { echo "error: no brief at $BRIEF" >&2; exit 1; }
 
-# Same session when brigade already runs inside tmux; dedicated session otherwise.
-if [ -n "${TMUX:-}" ]; then
-  SES=$(tmux display-message -p '#S')
-else
-  tmux has-session -t brigade 2>/dev/null || tmux new-session -d -s brigade
-  SES=brigade
-fi
+# Open a new Zellij tab named brigade-<id>, cd into the project, run worktrunk.
+# Zellij action new-tab opens in the current working directory; we cd in the
+# launch command itself to land in the right place.
+TAB_NAME="⏳ brigade-$ID"
 
-W="brigade-$ID"
-T="$SES:$W"
-if tmux list-windows -t "$SES" -F '#{window_name}' | grep -qx "$W"; then
-  echo "error: window $T already exists" >&2
+# Check the tab doesn't already exist
+if zellij action list-tabs 2>/dev/null | grep -qF "$TAB_NAME"; then
+  echo "error: Zellij tab '$TAB_NAME' already exists" >&2
   exit 1
 fi
 
-tmux new-window -d -t "$SES" -n "$W" -c "$PROJ_ABS"
-if [ "$KIND" != sous-chef ]; then
-  tmux send-keys -t "$T" 'worktrunk get' Enter
+# Open new tab — Zellij sets the tab name and cwd via the action flags.
+# --cwd sets the working directory for the new pane's shell.
+zellij action new-tab --name "$TAB_NAME" --cwd "$PROJ_ABS"
+sleep 0.5  # Let the shell initialise before we send commands
 
-  # Wait for the worktrunk subshell: the pane's cwd moves from the project to the worktree.
+# Get the pane id of the newly focused pane in this tab.
+# Zellij assigns an incrementing numeric pane id; we read it from the focused pane.
+PANE_ID=$(zellij action dump-screen /dev/stderr 2>&1 >/dev/null | head -0; \
+          zellij query --focused-pane 2>/dev/null | grep '^pane_id' | cut -d= -f2 || true)
+# Fallback: if query is unavailable, use a state file written by the tab itself.
+# For now record PANE_ID as "tab:$TAB_NAME" — brigade-peek/send resolve it.
+[ -n "$PANE_ID" ] || PANE_ID="tab:$TAB_NAME"
+
+if [ "$KIND" != sous-chef ]; then
+  # Use wt switch --create to get a worktree via Worktrunk.
+  # wt switch --create <branch> checks out an isolated worktree on a new branch
+  # named after the ticket id, cd-ing the shell into it.
+  zellij action write-chars "cd $(printf '%s' "$PROJ_ABS" | sed 's/ /\\ /g') && wt switch --create brigade/$ID"
+  sleep 0.3
+  zellij action write 13  # Enter
+
+  # Wait for Worktrunk to finish and the cwd to move to the worktree.
+  # wt switch --create prints the worktree path on stdout; we poll for it.
+  WTFILE=$(mktemp /tmp/brigade-wt-XXXXXX.txt)
+  WT=
   for _ in $(seq 1 60); do
-    p=$(tmux display-message -p -t "$T" '#{pane_current_path}' 2>/dev/null || true)
-    if [ -n "$p" ] && [ "$p" != "$PROJ_ABS" ]; then
-      WT="$p"
+    sleep 1
+    zellij action dump-screen "$WTFILE" 2>/dev/null || true
+    # Look for Worktrunk's "switched to" or "worktree at" output line
+    candidate=$(grep -oE '[^ ]*/worktrees/[^ ]+' "$WTFILE" 2>/dev/null | tail -1 || true)
+    if [ -n "$candidate" ] && [ -d "$candidate" ]; then
+      WT="$candidate"
       break
     fi
-    sleep 1
+    # Also check if current shell pwd changed from PROJ_ABS
+    pwd_line=$(grep -oE '\$ $|❯ $|\$ [^$]' "$WTFILE" 2>/dev/null | head -1 || true)
+    if [ -n "$pwd_line" ]; then
+      # Try to get cwd from a ps/lsof approach for the pane's shell
+      :
+    fi
   done
+  rm -f "$WTFILE"
+
   if [ -z "$WT" ]; then
-    echo "error: worktrunk get did not enter a worktree within 60s; inspect window $T" >&2
+    # Last resort: ask wt to print the current worktree path
+    WT=$(cd "$PROJ_ABS" && wt list 2>/dev/null | grep "brigade/$ID" | awk '{print $1}' | head -1 || true)
+  fi
+
+  if [ -z "$WT" ]; then
+    echo "error: wt switch --create brigade/$ID did not produce a worktree within 60s; inspect tab '$TAB_NAME'" >&2
     exit 1
   fi
 
-  # Isolation guard: refuse to launch unless WT is a genuine, ISOLATED worktree -
-  # a real git worktree root, distinct from the project's primary checkout
-  # (PROJ_ABS). Brigade is a worktrunk-pooled repo of itself, so a worktrunk-get
-  # misfire can leave the pane in (or in a subdir of, or a symlink to) the primary
-  # checkout; branching/committing there would tangle the primary onto a feature
-  # branch (see brigade-tangle-lib.sh). The wait loop above only proves the pane left
-  # PROJ_ABS's exact path; this proves it landed in a true, separate worktree.
+  # Isolation guard: WT must be a real git worktree root, distinct from PROJ_ABS.
   wt_real=
-  if ! wt_real=$(cd "$WT" 2>/dev/null && pwd -P); then
-    wt_real=
-  fi
+  if ! wt_real=$(cd "$WT" 2>/dev/null && pwd -P); then wt_real=; fi
   proj_real=
-  if ! proj_real=$(cd "$PROJ_ABS" 2>/dev/null && pwd -P); then
-    proj_real=
-  fi
+  if ! proj_real=$(cd "$PROJ_ABS" 2>/dev/null && pwd -P); then proj_real=; fi
   wt_top=$(git -C "$WT" rev-parse --show-toplevel 2>/dev/null || true)
   wt_top_real=
-  if ! wt_top_real=$(cd "$wt_top" 2>/dev/null && pwd -P); then
-    wt_top_real=
-  fi
+  if ! wt_top_real=$(cd "$wt_top" 2>/dev/null && pwd -P); then wt_top_real=; fi
   if [ -z "$wt_real" ] || [ -z "$wt_top_real" ] || [ "$wt_real" != "$wt_top_real" ] || [ "$wt_real" = "$proj_real" ]; then
-    echo "error: worktrunk get did not yield an isolated worktree (resolved '$WT'; worktree root '${wt_top:-none}'; primary '$PROJ_ABS'); refusing to launch to avoid tangling the primary checkout. Inspect window $T" >&2
+    echo "error: wt switch --create did not yield an isolated worktree (resolved '$WT'; worktree root '${wt_top:-none}'; primary '$PROJ_ABS'); refusing to launch to avoid tangling the primary checkout. Inspect tab '$TAB_NAME'" >&2
     exit 1
   fi
 fi
@@ -443,7 +462,8 @@ fi
 
 mkdir -p "$STATE"
 {
-  echo "window=$T"
+  echo "pane=$PANE_ID"
+  echo "tab=$TAB_NAME"
   echo "worktree=$WT"
   echo "project=$PROJ_ABS"
   echo "harness=$HARNESS"
@@ -466,8 +486,11 @@ if [ "$KIND" = sous-chef ]; then
   sq_home=$(shell_quote "$PROJ_ABS")
   LAUNCH="FM_ROOT_OVERRIDE= FM_STATE_OVERRIDE= FM_DATA_OVERRIDE= FM_PROJECTS_OVERRIDE= FM_CONFIG_OVERRIDE= FM_HOME=$sq_home $LAUNCH"
 fi
-tmux send-keys -t "$T" -l "$LAUNCH"
-sleep 0.3
-tmux send-keys -t "$T" Enter
 
-echo "spawned $ID harness=$HARNESS kind=$KIND mode=$MODE yolo=$YOLO window=$T worktree=$WT"
+# Focus the pane and launch the agent
+zellij action focus-terminal-pane "$PANE_ID" 2>/dev/null || true
+zellij action write-chars "$LAUNCH"
+sleep 0.3
+zellij action write 13  # Enter
+
+echo "spawned $ID harness=$HARNESS kind=$KIND mode=$MODE yolo=$YOLO tab=$TAB_NAME pane=$PANE_ID worktree=$WT"

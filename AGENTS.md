@@ -152,7 +152,7 @@ Reconcile reality with your records before doing anything else:
    If it refuses because another live session holds the lock, tell the head chef another active session is already managing the work and operate read-only until resolved.
 2. Drain queued wakes with `bin/brigade-wake-drain.sh` and keep the printed records as the first work queue for this recovery turn.
 3. Read `data/backlog.md`, `data/sous-chefs.md` if present, every `state/*.meta`, and every `state/*.status`.
-4. Use the `window=` values from this home's `state/*.meta` files as the live direct-report set, then check those zellij panes.
+4. Use the `pane=` (or `tab=`) values from this home's `state/*.meta` files as the live direct-report set, then check those zellij panes.
    Do not sweep every `brigade-*` zellij tab across all sessions during recovery; another brigade home's child panes may share that namespace and are not this home's orphans.
 5. If a recorded direct-report window is missing, reconcile it through its meta as described below.
 6. For meta with no window, reconcile by kind.
@@ -321,7 +321,14 @@ If one pair fails, the rest still run and the batch exits non-zero.
 The script resolves the harness (`brigade-harness.sh kitchen`), owns the verified launch templates, resolves the project's delivery mode (`brigade-project-mode.sh`) for ship/scout tickets, and records `harness=`, `kind=`, `mode=`, and `yolo=` in the ticket's meta; a non-flag third argument containing whitespace is treated as a raw launch command (only for verifying new adapters).
 For `kind=sous-chef`, the same script launches in the registered or explicit brigade home instead of running `worktrunk get` for a project, records `home=` and `projects=`, and uses the charter brief as the launch prompt.
 
-For ship and scout tickets, the script creates the window (in your current zellij session, or a dedicated `brigade` session when you are outside zellij), runs `worktrunk get`, waits for the worktree subshell, asserts the resolved worktree is a genuine isolated worktree distinct from the primary checkout (aborting the spawn otherwise, to prevent the worktree tangle of section 8), installs the turn-end hook, records `state/<id>.meta`, and launches the agent with the brief.
+For ship and scout tickets, the script opens a new Zellij tab named `⏳ brigade-<id>`, runs `wt switch --create brigade/<id>` to get an isolated worktree, asserts the resolved worktree is a genuine isolated worktree distinct from the primary checkout (aborting the spawn otherwise, to prevent the worktree tangle of section 8), installs the turn-end hook, records `state/<id>.meta` (with `pane=`, `tab=`, `worktree=`), and launches the agent with the brief.
+
+**Tab state convention** — line cooks rename their own Zellij tab to signal state. You read the tab name, not the output stream:
+- `⏳ brigade-<id>` — working (default at spawn)
+- `🔴 brigade-<id>` — needs input / stuck (in the weeds)
+- `✅ brigade-<id>` — done, awaiting your review (on the pass)
+
+Line cooks update the tab name by running: `zellij action rename-tab "⏳ brigade-<id>"` (or `🔴`/`✅`). Add these rename calls to the Recipe (AGENTS.md) for each project so every line cook knows the convention.
 For `kind=sous-chef`, the script creates the same kind of window but starts directly in the persistent home.
 Project worktrees start at detached HEAD on a clean default branch; ship briefs tell the line cook to create its branch, while scout briefs keep the worktree scratch.
 After spawning, peek the pane to confirm the line cook is processing the brief and handle any trust dialog with `harness-adapters`.

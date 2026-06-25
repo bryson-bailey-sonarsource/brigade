@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Tear down a finished ticket: return the worktrunk worktree or retire a
-# sous-chef home, kill the tmux window, clear volatile state, refresh/prune
+# sous-chef home, close the Zellij tab, clear volatile state, refresh/prune
 # the project's clone for PR-based ship tickets, then print a backlog-refresh
 # reminder.
 # REFUSES if the worktree holds work not on any remote, because worktrunk return
@@ -39,9 +39,10 @@ ID=$1
 FORCE=${2:-}
 
 META="$STATE/$ID.meta"
-[ -f "$META" ] || { echo "error: no meta for task $ID at $META" >&2; exit 1; }
+[ -f "$META" ] || { echo "error: no meta for ticket $ID at $META" >&2; exit 1; }
 WT=$(grep '^worktree=' "$META" | cut -d= -f2-)
-T=$(grep '^window=' "$META" | cut -d= -f2-)
+TAB=$(grep '^tab=' "$META" | cut -d= -f2- || true)
+PANE=$(grep '^pane=' "$META" | cut -d= -f2- || true)
 PROJ=$(grep '^project=' "$META" | cut -d= -f2-)
 HOME_PATH=$(grep '^home=' "$META" | cut -d= -f2- || true)
 PR_URL=$(grep '^pr=' "$META" | tail -1 | cut -d= -f2- || true)
@@ -355,13 +356,14 @@ cleanup_brigade_home_children() {
   for child_meta in "$sub_state"/*.meta; do
     [ -e "$child_meta" ] || continue
     child_id=$(basename "$child_meta" .meta)
-    child_t=$(meta_value "$child_meta" window)
+    child_t=$(meta_value "$child_meta" tab)
+    child_pane=$(meta_value "$child_meta" pane)
     child_wt=$(meta_value "$child_meta" worktree)
     child_proj=$(meta_value "$child_meta" project)
     child_kind=$(meta_value "$child_meta" kind)
     [ -n "$child_kind" ] || child_kind=ship
     if [ -n "$child_t" ]; then
-      tmux kill-window -t "$child_t" 2>/dev/null || true
+      zellij action close-tab --name "$child_t" 2>/dev/null || true
     fi
     if [ "$child_kind" = sous-chef ]; then
       child_home=$(meta_value "$child_meta" home)
@@ -473,7 +475,7 @@ if [ -d "$WT" ] && [ "$KIND" != sous-chef ]; then
   ( cd "$PROJ" && worktrunk return --force "$WT" )
 fi
 
-tmux kill-window -t "$T" 2>/dev/null || true
+zellij action close-tab --name "$TAB" 2>/dev/null || true
 if [ "$KIND" = sous-chef ]; then
   [ -n "$HOME_PATH" ] || HOME_PATH=$WT
   remove_brigade_home "$HOME_PATH" "sous-chef home" "$ID"
@@ -483,5 +485,5 @@ rm -f "$STATE/$ID.status" "$STATE/$ID.turn-ended" "$STATE/$ID.check.sh" "$STATE/
 if [ "$KIND" != scout ] && [ "$KIND" != sous-chef ] && [ "$MODE" != local-only ]; then
   "$FM_ROOT/bin/brigade-fleet-sync.sh" "$PROJ" || true
 fi
-echo "teardown $ID complete (window $T, worktree $WT)"
+echo "teardown $ID complete (tab $TAB, worktree $WT)"
 backlog_refresh_reminder

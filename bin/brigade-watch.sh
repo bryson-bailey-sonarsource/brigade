@@ -86,7 +86,7 @@ window_kind() {
   local w=$1 meta mw kind
   for meta in "$STATE"/*.meta; do
     [ -e "$meta" ] || continue
-    mw=$(grep '^window=' "$meta" | cut -d= -f2- || true)
+    mw=$(grep '^tab=' "$meta" | cut -d= -f2- || grep '^window=' "$meta" | cut -d= -f2- || true)
     [ "$mw" = "$w" ] || continue
     kind=$(grep '^kind=' "$meta" | cut -d= -f2- || true)
     [ -n "$kind" ] || kind=fire
@@ -100,7 +100,7 @@ recorded_windows() {
   local meta w seen=
   for meta in "$STATE"/*.meta; do
     [ -e "$meta" ] || continue
-    w=$(grep '^window=' "$meta" | cut -d= -f2- || true)
+    w=$(grep '^pane=' "$meta" | cut -d= -f2- || grep '^window=' "$meta" | cut -d= -f2- || true)
     [ -n "$w" ] || continue
     case "$seen" in
       *"|$w|"*) continue ;;
@@ -240,7 +240,10 @@ EOF
     # A sous-chef idling on its own watcher is healthy. Its parent supervises
     # it through status writes and heartbeats, not pane-idle staleness.
     [ "$(window_kind "$w")" = sous-chef ] && continue
-    tail40=$(tmux capture-pane -p -t "$w" -S -40 2>/dev/null) || continue
+    _wt=$(mktemp /tmp/brigade-watch-XXXXXX.txt)
+    zellij action focus-terminal-pane "$w" 2>/dev/null && \
+      zellij action dump-screen "$_wt" 2>/dev/null || { rm -f "$_wt"; continue; }
+    tail40=$(tail -40 "$_wt"); rm -f "$_wt"
     h=$(printf '%s' "$tail40" | hash_pane)
     key=$(printf '%s' "$w" | tr ':/.' '___')
     hf="$STATE/.hash-$key"
