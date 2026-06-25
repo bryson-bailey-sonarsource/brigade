@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Detect the agent harness this process tree runs on.
 # Usage: brigade-harness.sh         print own harness: claude|codex|opencode|pi|unknown
-#        brigade-harness.sh crew    print the effective line cook harness
-#                              (config/crew-harness; "default" resolves to own)
+#        brigade-harness.sh kitchen    print the effective line cook harness
+#                              (config/kitchen-harness; "default" resolves to own)
 # Detection layers: verified environment markers first, then process ancestry.
 # Record each newly verified env marker here.
 set -u
@@ -43,10 +43,10 @@ detect_own() {
   echo unknown
 }
 
-if [ "${1:-}" = "crew" ]; then
-  crew=
-  [ -f "$CONFIG/crew-harness" ] && crew=$(tr -d '[:space:]' < "$CONFIG/crew-harness" || true)
-  if [ -z "$crew" ] || [ "$crew" = "default" ]; then detect_own; else echo "$crew"; fi
+if [ "${1:-}" = "kitchen" ]; then
+  kitchen_harness=
+  [ -f "$CONFIG/kitchen-harness" ] && kitchen_harness=$(tr -d '[:space:]' < "$CONFIG/kitchen-harness" || true)
+  if [ -z "$kitchen_harness" ] || [ "$kitchen_harness" = "default" ]; then detect_own; else echo "$kitchen_harness"; fi
 else
   detect_own
 fi

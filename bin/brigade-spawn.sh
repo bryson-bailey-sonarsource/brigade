@@ -3,7 +3,7 @@
 # its isolated brigade home.
 # Usage: brigade-spawn.sh <ticket-id> <project-dir> [harness|launch-command] [--scout]
 #        brigade-spawn.sh <ticket-id> [<brigade-home>] [harness|launch-command] --sous-chef
-#   With no harness arg, the harness comes from brigade-harness.sh crew (config/crew-harness,
+#   With no harness arg, the harness comes from brigade-harness.sh kitchen (config/kitchen-harness,
 #   falling back to brigade's own harness). A bare adapter name (claude|codex|
 #   opencode|pi) overrides it for this spawn. A non-flag string containing whitespace
 #   is treated as a RAW launch command - the escape hatch for verifying new adapters.
@@ -149,8 +149,8 @@ case "$ARG3" in
     done
     ;;
   '')
-    HARNESS=$("$FM_ROOT/bin/brigade-harness.sh" crew)
-    LAUNCH=$(launch_template "$HARNESS" "$KIND") || { echo "error: no launch template for harness '$HARNESS' (from config/crew-harness or detection); pass a raw launch command to use an unverified adapter" >&2; exit 1; }
+    HARNESS=$("$FM_ROOT/bin/brigade-harness.sh" kitchen)
+    LAUNCH=$(launch_template "$HARNESS" "$KIND") || { echo "error: no launch template for harness '$HARNESS' (from config/kitchen-harness or detection); pass a raw launch command to use an unverified adapter" >&2; exit 1; }
     ;;
   *)
     HARNESS=$ARG3

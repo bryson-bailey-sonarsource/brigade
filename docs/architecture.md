@@ -10,7 +10,7 @@ brigade's full operating manual for the orchestrator agent itself is [`AGENTS.md
 
 A zero-token bash watcher (`bin/brigade-watch.sh`) sleeps on the fleet and wakes the brigade only when a line cook reports, stalls, a PR merges, or an internal heartbeat review is due.
 Detected wakes are also written to a durable local queue (`state/.wake-queue`) before detector state advances, so a missed one-shot process exit can be recovered by draining the queue.
-Routine watcher polling, re-arm no-ops, elapsed waiting time, and unchanged heartbeat reviews stay silent; an idle crew costs you nothing.
+Routine watcher polling, re-arm no-ops, elapsed waiting time, and unchanged heartbeat reviews stay silent; an idle kitchen costs you nothing.
 
 Routine re-arms go through `bin/brigade-watch-arm.sh`, which forks the watcher as a tracked child, verifies it is genuinely alive with a fresh liveness beacon, and prints exactly one honest status line (`started` / `healthy` / `FAILED`, the last exiting non-zero) - never a false `already running` off a dying process.
 Its `--restart` mode signals only the watcher recorded in the current home's `state/.watch.lock`, so restarting one home cannot kill sibling sous-chef watchers.

@@ -8,7 +8,7 @@ user-invocable: false
 
 Use this reference before any harness-specific brigade operation: spawn, recovery, trust-dialog handling, skill invocation, interrupt, exit, resume, or adapter verification.
 
-Line cooks default to the same harness brigade is running on unless `config/crew-harness` records an adapter name.
+Line cooks default to the same harness brigade is running on unless `config/kitchen-harness` records an adapter name.
 The head chef may override that file at bootstrap or later; a per-ticket instruction such as "run this one on codex" overrides it for that dispatch only.
 `default` means mirror brigade's own harness.
 
@@ -17,13 +17,13 @@ The mechanics, including launch command, autonomy flag, and turn-end hook, live 
 The supervision knowledge lives here: busy signature, exit command, interrupt, dialogs, resume behavior, skill invocation, and quirks.
 
 Never dispatch a line cook or sous-chef on an unverified adapter.
-If `config/crew-harness` names an unverified adapter, tell the head chef and fall back to brigade's own harness until that adapter is verified.
+If `config/kitchen-harness` names an unverified adapter, tell the head chef and fall back to brigade's own harness until that adapter is verified.
 If the head chef asks for a new harness, propose verifying it first: spawn a trivial supervised ticket using `brigade-spawn`'s raw-launch-command escape hatch, confirm every fact empirically, then record the mechanics in `brigade-spawn`, the busy signature in `brigade-watch.sh` and `brigade-zellij-lib.sh` defaults, any needed `FM_COMPOSER_IDLE_RE` empty-composer override, and the verified knowledge here.
 
 ## Detection
 
 `bin/brigade-harness.sh` prints brigade's own harness, using verified env markers first and then process ancestry.
-`bin/brigade-harness.sh crew` resolves the effective line cook harness from `config/crew-harness`.
+`bin/brigade-harness.sh kitchen` resolves the effective line cook harness from `config/kitchen-harness`.
 On `unknown`, ask the head chef instead of guessing.
 A head chef override always beats detection.
 When verifying a new adapter, record its env marker and command name in `bin/brigade-harness.sh`.

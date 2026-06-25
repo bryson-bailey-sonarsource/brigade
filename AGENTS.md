@@ -69,7 +69,7 @@ README.md            public overview and development notes
 .agents/skills/      shared skills, committed
 .claude/skills       symlink to .agents/skills for claude compatibility
 bin/                 helper scripts, committed; read each script's header before first use
-config/crew-harness  line cook harness override; LOCAL, gitignored; absent or "default" = same as brigade
+config/kitchen-harness  line cook harness override; LOCAL, gitignored; absent or "default" = same as brigade
 data/                personal fleet records; LOCAL, gitignored as a whole
   backlog.md         ticket queue, dependencies, history
   kitchen.md         head chef's curated personal preferences and working style; LOCAL, gitignored, and canonical even if harness memory mirrors it
@@ -110,7 +110,7 @@ Otherwise it prints one line per problem or capability fact; handle each:
   For `worktrunk`, this also covers an installed version whose `worktrunk get` lacks `--lease`; treat it as an upgrade request.
 - `NEEDS_GH_AUTH` - ask the head chef to run `! gh auth login` (interactive; you cannot run it for them).
 - `TANGLE: <remediation>` - the brigade primary checkout (the repo root, `FM_ROOT`) is stranded on a feature branch instead of its default branch: a line cook working brigade-on-itself branched/committed in the primary instead of its own isolated worktree (section 8). The work is safe on that branch ref; restore the primary to its default branch with the printed `git -C <root> checkout <default>`, then re-validate that branch in a proper worktree. This is the only sanctioned brigade-initiated git write to the primary, and it is a non-destructive branch switch that strands nothing.
-- `CREW_HARNESS_OVERRIDE: <name>` - record and use the override silently; surface a harness fact only if it actually blocks work or the head chef asks.
+- `KITCHEN_HARNESS_OVERRIDE: <name>` - record and use the override silently; surface a harness fact only if it actually blocks work or the head chef asks.
 - `FLEET_SYNC: <repo>: skipped: <reason>` - bootstrap continued; investigate only if the dirty, diverged, or offline clone blocks work.
 - `TASKS_AXI: available` - an optional capability fact, not a problem; record it silently and use section 10 for backlog mutations.
   It prints only after the `tasks-axi` compatibility probe passes for version 0.1.1 or newer; absence or incompatibility only falls back to hand-editing and never blocks work.
@@ -127,19 +127,19 @@ Treat any harness memory of these preferences as a recall cache only; `data/kitc
 Do not dispatch any work until the tools that work needs are present and GitHub auth is good.
 Use `gh-axi` for all GitHub operations, `chrome-devtools-axi` for all browser operations, and `# [removed:  dropped — see brigade plan]` when a decision or report is complex enough to deserve a rich review surface.
 Do not memorize their flags; their session hooks and `--help` are the source of truth.
-If the head chef names a different line cook harness at bootstrap or later, write it to `config/crew-harness` (local, gitignored); that is the whole switch.
+If the head chef names a different line cook harness at bootstrap or later, write it to `config/kitchen-harness` (local, gitignored); that is the whole switch.
 
 ## 4. Harness adapters
 
 Line cooks default to the same harness you are running on.
-The head chef may override this at any time, typically at bootstrap: record the choice in `config/crew-harness` (a single adapter name; absent or `default` means mirror your own harness).
+The head chef may override this at any time, typically at bootstrap: record the choice in `config/kitchen-harness` (a single adapter name; absent or `default` means mirror your own harness).
 The recorded harness is used for every dispatch until changed; a per-ticket instruction from the head chef ("run this one on codex") overrides it for that dispatch only.
-Resolve `default` with `bin/brigade-harness.sh`; resolve the active line cook harness with `bin/brigade-harness.sh crew`.
+Resolve `default` with `bin/brigade-harness.sh`; resolve the active line cook harness with `bin/brigade-harness.sh kitchen`.
 
 Each adapter splits into mechanics and knowledge.
 The mechanics (launch command, autonomy flag, turn-end hook) live in `bin/brigade-spawn.sh`; the knowledge you need while supervising (busy signature, exit, interrupt, dialogs, quirks, skill invocation, resume) lives in the agent-only `harness-adapters` skill.
 **Never dispatch a line cook on an unverified adapter.**
-If `config/crew-harness` names an unverified one, tell the head chef and fall back to your own harness until it is verified.
+If `config/kitchen-harness` names an unverified one, tell the head chef and fall back to your own harness until it is verified.
 If the head chef asks for a new harness, load `harness-adapters`, verify it empirically with a trivial supervised ticket, then commit the script and knowledge changes.
 Load `harness-adapters` before any spawn, recovery, trust-dialog handling, harness-specific skill invocation, interrupt, exit, resume, or adapter verification.
 
@@ -318,7 +318,7 @@ bin/brigade-spawn.sh <id1>=projects/<repo1> <id2>=projects/<repo2> [--scout]   #
 Dispatch several tickets in one call by passing `id=repo` pairs instead of a single `<id> <project>`; each pair is spawned through the same single-ticket path, a shared `--scout` applies to all, and the looping happens inside the script so you never hand-write a multi-ticket shell loop.
 If one pair fails, the rest still run and the batch exits non-zero.
 
-The script resolves the harness (`brigade-harness.sh crew`), owns the verified launch templates, resolves the project's delivery mode (`brigade-project-mode.sh`) for ship/scout tickets, and records `harness=`, `kind=`, `mode=`, and `yolo=` in the ticket's meta; a non-flag third argument containing whitespace is treated as a raw launch command (only for verifying new adapters).
+The script resolves the harness (`brigade-harness.sh kitchen`), owns the verified launch templates, resolves the project's delivery mode (`brigade-project-mode.sh`) for ship/scout tickets, and records `harness=`, `kind=`, `mode=`, and `yolo=` in the ticket's meta; a non-flag third argument containing whitespace is treated as a raw launch command (only for verifying new adapters).
 For `kind=sous-chef`, the same script launches in the registered or explicit brigade home instead of running `worktrunk get` for a project, records `home=` and `projects=`, and uses the charter brief as the launch prompt.
 
 For ship and scout tickets, the script creates the window (in your current zellij session, or a dedicated `brigade` session when you are outside zellij), runs `worktrunk get`, waits for the worktree subshell, asserts the resolved worktree is a genuine isolated worktree distinct from the primary checkout (aborting the spawn otherwise, to prevent the worktree tangle of section 8), installs the turn-end hook, records `state/<id>.meta`, and launches the agent with the brief.
@@ -349,7 +349,7 @@ Pooled clones keep their local default refs frozen at clone time and can lag `or
 
 ### Validate
 
-For `no-mistakes`-mode ship tickets, when a line cook's status says `done`, trigger validation using the crew's harness from `state/<id>.meta`.
+For `no-mistakes`-mode ship tickets, when a line cook's status says `done`, trigger validation using the kitchen's harness from `state/<id>.meta`.
 Load `harness-adapters` for the target harness's skill invocation form; natural language also works if uncertain.
 
 The line cook drives the no-mistakes pipeline (review, test, document, lint, push, PR, CI) itself.
@@ -473,7 +473,7 @@ Background that work so watcher wakes can interleave with it and the supervision
 A line cook driving its own `no-mistakes` validation does the opposite: it runs that gate drive in the foreground and drives it synchronously, never backgrounding or idle-waiting on its own validation run.
 
 Token discipline: status files before panes; default peeks to 40 lines; never stream a pane repeatedly through yourself; batch what you tell the head chef.
-The context-% shown in a peek is not actionable as crew health; ignore it and intervene only on real signals (`signal`, `stale`, `needs-decision`, `blocked`), looping or confusion in the pane, or a question the brief already answers.
+The context-% shown in a peek is not actionable as kitchen health; ignore it and intervene only on real signals (`signal`, `stale`, `needs-decision`, `blocked`), looping or confusion in the pane, or a question the brief already answers.
 Silence is the correct state while a healthy background watcher is waiting.
 
 ### Away-mode stub

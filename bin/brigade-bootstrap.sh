@@ -4,7 +4,7 @@
 #          Detect: prints one line per problem or capability fact and exits 0.
 #          Silent = all good.
 #          Lines: "MISSING: <tool> (install: <command>)", "NEEDS_GH_AUTH",
-#                 "CREW_HARNESS_OVERRIDE: <name>", "FLEET_SYNC: <repo>: skipped: <reason>",
+#                 "KITCHEN_HARNESS_OVERRIDE: <name>", "FLEET_SYNC: <repo>: skipped: <reason>",
 #                 "TASKS_AXI: available", "TANGLE: <remediation>".
 #          A TANGLE line means the brigade primary checkout (FM_ROOT) is stranded
 #          on a feature branch instead of its default branch - a line cook's work
@@ -113,9 +113,9 @@ if [ -n "$tangle_branch" ]; then
   tangle_default=$(fm_default_branch "$FM_ROOT" 2>/dev/null || echo main)
   echo "TANGLE: primary checkout on feature branch '$tangle_branch' (expected '$tangle_default'); the work is safe on that ref - restore the primary with: git -C $FM_ROOT checkout $tangle_default, then re-validate the branch in a proper worktree"
 fi
-crew=
-[ -f "$CONFIG/crew-harness" ] && crew=$(tr -d '[:space:]' < "$CONFIG/crew-harness" || true)
-[ -n "$crew" ] && [ "$crew" != "default" ] && echo "CREW_HARNESS_OVERRIDE: $crew"
+kitchen_harness=
+[ -f "$CONFIG/kitchen-harness" ] && kitchen_harness=$(tr -d '[:space:]' < "$CONFIG/kitchen-harness" || true)
+[ -n "$kitchen_harness" ] && [ "$kitchen_harness" != "default" ] && echo "KITCHEN_HARNESS_OVERRIDE: $kitchen_harness"
 fm_tasks_axi_compatible && echo "TASKS_AXI: available"
 fleet_sync
 exit 0
