@@ -10,10 +10,6 @@
 
 <h3 align="center">Fire your first ticket. Run the kitchen.</h3>
 
-<p align="center">
-  <img alt="brigade - fire your first ticket, run the kitchen" src="assets/banner.svg" width="100%" />
-</p>
-
 ## What it is
 
 You can run one coding agent easily.
