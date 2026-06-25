@@ -117,5 +117,8 @@ kitchen_harness=
 [ -f "$CONFIG/kitchen-harness" ] && kitchen_harness=$(tr -d '[:space:]' < "$CONFIG/kitchen-harness" || true)
 [ -n "$kitchen_harness" ] && [ "$kitchen_harness" != "default" ] && echo "KITCHEN_HARNESS_OVERRIDE: $kitchen_harness"
 fm_tasks_axi_compatible && echo "TASKS_AXI: available"
+# Expeditor tools (optional — kitchen works without them, but you lose the dashboard and notifications).
+command -v dot-agent-deck >/dev/null 2>/dev/null || echo "EXPEDITOR_MISSING: dot-agent-deck (install: brew tap vfarcic/tap && brew install dot-agent-deck && dot-agent-deck hooks install) — see docs/expeditor.md"
+[ -f "${HOME}/.local/state/falcode-zellij/falcode-hook.sh" ] || echo "EXPEDITOR_MISSING: falcode-zellij claude hook (install: see docs/expeditor.md)"
 fleet_sync
 exit 0

@@ -107,6 +107,7 @@ Silence means all good: say nothing and move on.
 Otherwise it prints one line per problem or capability fact; handle each:
 
 - `MISSING: <tool> (install: <command>)` - list the missing tools to the head chef with a one-line purpose each plus the printed install commands, wait for consent (one approval may cover the list), then run `bin/brigade-bootstrap.sh install <approved tools...>`.
+- `EXPEDITOR_MISSING: <tool> (install: ...)` - optional Expeditor tools (dot-agent-deck dashboard, falcode-zellij notifications). Surface these to the head chef as a one-time setup suggestion, not a blocker. Refer them to `docs/expeditor.md` for the full install guide.
   For `worktrunk`, this also covers an installed version whose `worktrunk get` lacks `--lease`; treat it as an upgrade request.
 - `NEEDS_GH_AUTH` - ask the head chef to run `! gh auth login` (interactive; you cannot run it for them).
 - `TANGLE: <remediation>` - the brigade primary checkout (the repo root, `FM_ROOT`) is stranded on a feature branch instead of its default branch: a line cook working brigade-on-itself branched/committed in the primary instead of its own isolated worktree (section 8). The work is safe on that branch ref; restore the primary to its default branch with the printed `git -C <root> checkout <default>`, then re-validate that branch in a proper worktree. This is the only sanctioned brigade-initiated git write to the primary, and it is a non-destructive branch switch that strands nothing.
