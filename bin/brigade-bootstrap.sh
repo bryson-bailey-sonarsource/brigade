@@ -1,23 +1,4 @@
-#!/usr/bin/env bash
-# Bootstrap detection, best-effort fleet refresh/prune, and installs.
-# Usage: brigade-bootstrap.sh
-#          Detect: prints one line per problem or capability fact and exits 0.
-#          Silent = all good.
-#          Lines: "MISSING: <tool> (install: <command>)", "NEEDS_GH_AUTH",
-#                 "KITCHEN_HARNESS_OVERRIDE: <name>", "FLEET_SYNC: <repo>: skipped: <reason>",
-#                 "TASKS_AXI: available", "TANGLE: <remediation>".
-#          A TANGLE line means the brigade primary checkout (FM_ROOT) is stranded
-#          on a feature branch instead of its default branch - a line cook's work
-#          landed in the primary instead of its own worktree; restore it per the line.
-#          wt (worktrunk) is MISSING when the binary is not found.
-#          tickets-axi is an OPTIONAL backlog-management capability reported only
-#          when tickets-axi --version is 0.1.1 or newer. It is never a MISSING
-#          line and never prompts an install.
-#          Fleet sync fetches, fast-forwards, and prunes gone local branches;
-#          it is bounded by FM_FLEET_SYNC_BOOTSTRAP_TIMEOUT, default 20s.
-#          Set FM_FLEET_PRUNE=0 to skip branch pruning during that refresh.
-#        brigade-bootstrap.sh install <tool>...
-#          Install the named tools (only ones the head chef approved).
+
 set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
