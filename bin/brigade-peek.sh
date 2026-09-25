@@ -1,8 +1,4 @@
-#!/usr/bin/env bash
-# Print the tail of a line cook pane (bounded, for cheap diagnosis).
-# Usage: brigade-peek.sh <ticket-id> [lines=40]
-#   <ticket-id> is resolved through this home's state/<id>.meta to get the pane-id.
-#   Pass an explicit pane-id (numeric) to target a pane outside this brigade home.
+
 set -eu
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
