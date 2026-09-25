@@ -5,7 +5,6 @@ The Expeditor is the eyes between you and the kitchen. It has two parts:
 - **dot-agent-deck** — Rust terminal dashboard. Shows all active stations (line cook panes) and their state. Homebrew installable.
 - **falcode-zellij** — Zellij WASM plugin. Fires notifications when a line cook finishes or needs input. Lets you jump directly to that station.
 
-Neither is built by brigade — you install them once. This document covers that install plus wiring them to brigade.
 
 ---
 
